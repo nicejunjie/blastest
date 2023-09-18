@@ -1,0 +1,96 @@
+nohup: ignoring input
+"mysecond.c", line 16: warning: variable "i" was set but never used [set_but_not_used]
+          int i;
+              ^
+
+Remark: individual warnings can be suppressed with "--diag_suppress <warning-name>"
+
+test_zgemm.f90:
+blas_test:
+     29, Memory copy idiom, array assignment replaced by call to pgf90_mcopyz16
+         Loop not fused: function call before adjacent loop
+         Generated vector simd code for the loop
+     32, Memory copy idiom, array assignment replaced by call to pgf90_mcopyz16
+         Loop not fused: function call before adjacent loop
+         Generated vector simd code for the loop
+     35, Loop not vectorized/parallelized: contains call
+100 100 100
+runtime(s):            0.000341
+runtime(s):            0.033001
+cpu
+200 200 200
+runtime(s):            0.000482
+runtime(s):            0.072744
+gpu
+300 300 300
+runtime(s):            0.000669
+runtime(s):            0.073387
+gpu
+400 400 400
+runtime(s):            0.000946
+runtime(s):            0.072971
+gpu
+500 500 500
+runtime(s):            0.001407
+runtime(s):            0.072984
+gpu
+600 600 600
+runtime(s):            0.001923
+runtime(s):            0.073469
+gpu
+700 700 700
+runtime(s):            0.002541
+runtime(s):            0.073030
+gpu
+800 800 800
+runtime(s):            0.003640
+runtime(s):            0.074435
+gpu
+900 900 900
+runtime(s):            0.004786
+runtime(s):            0.074904
+gpu
+1000 1000 1000
+runtime(s):            0.006047
+runtime(s):            0.081117
+gpu
+2000 2000 2000
+runtime(s):            0.037257
+runtime(s):            0.083287
+gpu
+3000 3000 3000
+runtime(s):            0.118004
+runtime(s):            0.087046
+gpu
+4000 4000 4000
+runtime(s):            0.268469
+runtime(s):            0.091927
+gpu
+5000 5000 5000
+runtime(s):            0.507780
+runtime(s):            0.101591
+gpu
+7000 7000 7000
+runtime(s):            1.345838
+runtime(s):            0.135030
+gpu
+10000 10000 10000
+runtime(s):            3.972278
+runtime(s):            0.222718
+gpu
+15000 15000 15000
+runtime(s):           12.963364
+runtime(s):            0.559943
+gpu
+20000 20000 20000
+runtime(s):           31.088631
+runtime(s):            1.178716
+gpu
+30000 30000 30000
+runtime(s):          104.000005
+runtime(s):            3.921661
+gpu
+40000 40000 40000
+runtime(s):          247.326885
+runtime(s):            9.837025
+gpu

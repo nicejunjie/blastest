@@ -1,0 +1,90 @@
+nohup: ignoring input
+"mysecond.c", line 16: warning: variable "i" was set but never used [set_but_not_used]
+          int i;
+              ^
+
+Remark: individual warnings can be suppressed with "--diag_suppress <warning-name>"
+
+test_dgemm.f90:
+blas_test:
+     25, Loop not vectorized/parallelized: contains call
+100 100 100
+runtime(s):            0.000336
+runtime(s):            0.032564
+cpu
+200 200 200
+runtime(s):            0.000381
+runtime(s):            0.024533
+cpu
+300 300 300
+runtime(s):            0.000484
+runtime(s):            0.027167
+cpu
+400 400 400
+runtime(s):            0.000595
+runtime(s):            0.049012
+gpu
+500 500 500
+runtime(s):            0.000838
+runtime(s):            0.049478
+gpu
+600 600 600
+runtime(s):            0.000939
+runtime(s):            0.049170
+gpu
+700 700 700
+runtime(s):            0.001159
+runtime(s):            0.049145
+gpu
+800 800 800
+runtime(s):            0.001542
+runtime(s):            0.049232
+gpu
+900 900 900
+runtime(s):            0.001893
+runtime(s):            0.049398
+gpu
+1000 1000 1000
+runtime(s):            0.002321
+runtime(s):            0.049593
+gpu
+2000 2000 2000
+runtime(s):            0.010204
+runtime(s):            0.050474
+gpu
+3000 3000 3000
+runtime(s):            0.028932
+runtime(s):            0.051797
+gpu
+4000 4000 4000
+runtime(s):            0.062440
+runtime(s):            0.053775
+gpu
+5000 5000 5000
+runtime(s):            0.123309
+runtime(s):            0.065404
+gpu
+7000 7000 7000
+runtime(s):            0.309289
+runtime(s):            0.076787
+gpu
+10000 10000 10000
+runtime(s):            0.863353
+runtime(s):            0.100486
+gpu
+15000 15000 15000
+runtime(s):            3.057255
+runtime(s):            0.236563
+gpu
+20000 20000 20000
+runtime(s):            7.132382
+runtime(s):            0.560630
+gpu
+30000 30000 30000
+runtime(s):           23.755094
+runtime(s):            2.032722
+gpu
+40000 40000 40000
+runtime(s):           56.030322
+runtime(s):            5.072206
+gpu

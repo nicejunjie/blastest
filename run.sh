@@ -4,8 +4,8 @@ rm a.out
 
 TEST=test_zgemm.f90
 
-  pgcc -c mysecond.c -o mysecond.o
-  pgfortran  -lblas -O2 -Minfo=all $TEST mysecond.o
+  pgcc -c -g mysecond.c -o mysecond.o
+  pgfortran -g  -lblas -O2 -Minfo=all $TEST mysecond.o
 
 #pgfortran /opt/nvidia/hpc_sdk/Linux_aarch64/23.5/math_libs/12.1/targets/sbsa-linux/lib/libnvblas.so -O2 -Minfo=all $TEST mysecond.o
 
@@ -14,11 +14,13 @@ TEST=test_zgemm.f90
 export OMP_NUM_THREADS=72
 
 export NVBLAS_CONFIG_FILE=nvblas.conf
-NVBLAS=/opt/nvidia/hpc_sdk/Linux_aarch64/23.5/math_libs/12.1/targets/sbsa-linux/lib/libnvblas.so 
+ NVBLAS=/opt/nvidia/hpc_sdk/Linux_aarch64/23.7/math_libs/12.2/targets/sbsa-linux/lib/libnvblas.so
+#NVBLAS=/home/nvidia/junjieli/nvhpc/23.5/Linux_aarch64/23.5/math_libs/12.1/targets/sbsa-linux/lib/libnvblas.so
 
 
 
-for i in 100 1000 10000 20000
+
+for i in 100 200 300 400 500 600 700 800 900 1000 2000 3000 4000 5000 7000 10000 15000 20000 30000 40000
 do
   M=$i
   N=$i
