@@ -1,0 +1,64 @@
+ 
+#define _GNU_SOURCE
+
+#include <stdio.h>
+#include <cublas_v2.h>
+#include <stdlib.h>
+#include <time.h>
+#include <math.h>
+#include <dlfcn.h>
+
+extern double mysecond();
+static void (*orig_dgemm)()=NULL; 
+cublasStatus_t status;
+cublasHandle_t handle;
+
+void dgemm_( const char* transa, const char* transb, const int* m, const int* n, const int* k, 
+                 const double* alpha, const double* A, const int* lda, const double* B, const int* ldb, 
+                 const double* beta, double* C, const int* ldc) {
+
+    fprintf(stdout,"overloading dgemm_\n");
+
+    status = cublasCreate(&handle);
+    if (status != CUBLAS_STATUS_SUCCESS) {
+        fprintf(stderr, "CUBLAS initialization failed\n");
+        return;
+    }
+
+    // Perform matrix multiplication
+    cublasOperation_t tA = (*transa == 'N') ? CUBLAS_OP_N : CUBLAS_OP_T;
+    cublasOperation_t tB = (*transb == 'N') ? CUBLAS_OP_N : CUBLAS_OP_T;
+
+
+    status = cublasDgemm(handle, tA, tB, *m, *n, *k, alpha, A, *lda, B, *ldb, beta, C, *ldc);
+
+
+    if (status != CUBLAS_STATUS_SUCCESS) {
+        fprintf(stderr, "Error in cublasDgemm\n");
+    }
+   // cublasDestroy(handle);
+
+    return;
+}
+
+
+void mylib_init(){
+    orig_dgemm= dlsym(RTLD_NEXT, "dgemm_");
+/*
+    status = cublasCreate(&handle);
+    if (status != CUBLAS_STATUS_SUCCESS) {
+        fprintf(stderr, "CUBLAS initialization failed\n");
+        return;
+    }
+*/
+}
+void mylib_fini(){
+   printf("in fini\n");
+    // Destroy the handle
+    cublasDestroy(handle);
+}
+
+
+ __attribute__((section(".init_array"))) void *__init = mylib_init;
+ __attribute__((section(".fini_array"))) void *__fini = mylib_fini;
+
