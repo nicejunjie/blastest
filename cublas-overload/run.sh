@@ -20,10 +20,10 @@ pgfortran -pg -mp  -lblas -O2 -Minfo=all test_dgemm.f90 mysecond.o
 #export PGI_TERM=trace #debug trace signal abort 
 
 
-M=1000
-N=1000
-K=1000
-ni=1
+M=4000
+N=4000
+K=4000
+ni=3
 
 echo "-------------------------"
 echo Matrix Size: $M $N $K

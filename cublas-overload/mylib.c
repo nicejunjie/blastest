@@ -22,7 +22,7 @@ void dgemm_( const char* transa, const char* transb, const int* m, const int* n,
    ta0=mysecond();
    double t1,t0;
 #endif
-   int avgn=cbrt(*m)*cbrt(*n)*cbrt(*k);
+   double avgn=cbrt(*m)*cbrt(*n)*cbrt(*k);
    if(avgn<10)  {
         printf("%s\n", "on cpu");
          orig_dgemm(transa, transb, m, n, k, alpha, A, lda, B, ldb, beta, C, ldc); 
@@ -112,7 +112,7 @@ void dgemm_( const char* transa, const char* transb, const int* m, const int* n,
     ta1=mysecond()-ta0;
     printf("* my total time %.6f\n",ta1);
 #endif
-    cublasDestroy(handle);
+//    cublasDestroy(handle);
     return;
 }
 
@@ -128,7 +128,7 @@ void mylib_init(){
 }
 void mylib_fini(){
     // Destroy the handle
-  //  cublasDestroy(handle);
+    cublasDestroy(handle);
     return;
 }
 
