@@ -46,6 +46,11 @@ void dgemm_( const char* transa, const char* transb, const int* m, const int* n,
     cudaMalloc((void **)&d_A, (*m) * (*k) * sizeof(double));
     cudaMalloc((void **)&d_B, (*k) * (*n) * sizeof(double));
     cudaMalloc((void **)&d_C, (*m) * (*n) * sizeof(double));
+
+  //  cudaMemset(d_A, 0, (*m) * (*k) * sizeof(double));
+  //  cudaMemset(d_B, 0, (*k) * (*n) * sizeof(double));
+  //  cudaMemset(d_C, 0, (*m) * (*n) * sizeof(double));
+
 #ifdef DEBUG
     t1=mysecond()-t0;
     printf("cudamalloc time %.6f\n",t1);
@@ -117,6 +122,44 @@ void dgemm_( const char* transa, const char* transb, const int* m, const int* n,
 }
 
 
+void dgemm_0call(){
+    double *d_A, *d_B, *d_C;
+    int m=40000, n=40000, k=40000;
+    int lda=m, ldb=k, ldc=m;
+    double alpha=1.0, beta=0.0;
+    cudaMalloc((void **)&d_A, m * k * sizeof(double));
+    cudaMalloc((void **)&d_B, k * n * sizeof(double));
+    cudaMalloc((void **)&d_C, m * n * sizeof(double));
+    cudaMemset(d_A, 0, m * k * sizeof(double));
+    cudaMemset(d_B, 0, k * n * sizeof(double));
+    cudaMemset(d_C, 0, m * n * sizeof(double));
+    cublasOperation_t transA =  CUBLAS_OP_N;
+    cublasOperation_t transB =  CUBLAS_OP_N;
+    double *h_C = (double *)malloc(m * n * sizeof(double));
+
+    status = cublasDgemm(handle, transA, transB, m, n, k, &alpha, d_A, lda, d_B, ldb, &beta, d_C, ldc);
+    if (status != CUBLAS_STATUS_SUCCESS) {
+        fprintf(stderr, "Error in cublasDgemm 0call\n");
+    }
+    cudaMemcpy(h_C, d_C, m * n * sizeof(double), cudaMemcpyDeviceToHost);
+
+/*
+    printf("Result matrix C:\n");
+    for (int i = 0; i < m; ++i) {
+        for (int j = 0; j < n; ++j) {
+            printf("%f\t", h_C[i * n + j]);
+        }
+        printf("\n");
+    }
+*/
+    cudaFree(d_A);
+    cudaFree(d_B);
+    cudaFree(d_C);
+    free(h_C);
+
+    return;
+}
+
 void mylib_init(){
     orig_dgemm= dlsym(RTLD_NEXT, "dgemm_");
     status = cublasCreate(&handle);
@@ -124,7 +167,8 @@ void mylib_init(){
         fprintf(stderr, "CUBLAS initialization failed\n");
         return;
     }
-
+    dgemm_0call();
+    return;
 }
 void mylib_fini(){
     // Destroy the handle
