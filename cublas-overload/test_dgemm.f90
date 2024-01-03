@@ -7,9 +7,14 @@ PROGRAM blas_test
   INTEGER :: i, Niter, j
   REAL*8 :: dtime, mysecond
   REAL*8 :: check
+  REAL*8 :: alpha, beta
   
   ! Read matrix dimensions from user input
-  READ(*,*) M, N, K, Niter
+   READ(*,*) M, N, K, Niter
+!  M=20816
+!  N=2400
+!  K=32
+!  Niter=10
   
   ! Allocate memory for the matrices
   ALLOCATE(A(M, K), B(K, N), C(M, N))
@@ -17,16 +22,21 @@ PROGRAM blas_test
   ! Initialize matrices A and B (for example)
   A = 2.0d0
   B = 0.5d0
+  C = 0.0d0
 ! call random_number(A)
 ! call random_number(B)
+
+ alpha=1.0d0
+ beta=1.0d0
   
-  dtime = mysecond()
   do i=1, Niter
+  dtime = mysecond()
 !    print *, "iter=",i
-    CALL DGEMM('N', 'N', M, N, K, 1.0d0, A, M, B, K, 0.0d0, C, M)
-  end do
+    CALL DGEMM('N', 'N', M, N, K, alpha, A, M, B, K, beta, C, M)
   dtime = mysecond() - dtime
-  dtime = dtime / Niter
+  write(*,'(A F20.6)') "runtime(s):", dtime
+  end do
+!  dtime = dtime / Niter
 
 !$omp parallel do reduction(+:check) private(j)
   do i=1, M
@@ -37,14 +47,13 @@ PROGRAM blas_test
 !$omp end parallel do
   check=check/M/N
   
-  write(*,'(A F20.6)') "runtime(s):", dtime
   
   ! Display the result
   !WRITE(*,*) "Resultant Matrix C:"
   !DO i = 1, M
   !  WRITE(*, '(100F8.2)') (C(i, j), j = 1, N)
   !ENDDO
-  WRITE(*,"(A F15.2 I10)") "# Result check", check, K
+  WRITE(*,"(A F15.2 I10)") "# Result check", check, K*Niter
   
   
   ! Deallocate memory
