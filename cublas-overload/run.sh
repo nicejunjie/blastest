@@ -8,7 +8,8 @@ CUINCLUDE=/home/nvidia/junjieli//nvhpc/23.11/Linux_aarch64/23.11/cuda/include
 
 #COPY="-DGPUCOPY -DDEBUG -DCUDA_MEM_POOL"
 #COPY="-DGPUCOPY -DCUDA_MEM_POOL"
- COPY="-DDEBUG "
+#COPY="-DDEBUG -DGPUCOPY -DCUDA_ASYNC "
+COPY=""
 
 FLAGS="--diag_suppress incompatible_assignment_operands --diag_suppress set_but_not_used"
 pgcc -c -g -fPIC mysecond.c -o mysecond.o  $FLAGS
@@ -18,14 +19,14 @@ pgcc -shared -g  -o mylib.so mylib.o mysecond.o $CUBLAS $CURT -traceback $FLAGS
 
 pgfortran -g -mp  -lblas -O2 -Minfo=all test_dgemm.f90 mysecond.o
 
-
+ NVBLAS=/opt/nvidia/hpc_sdk/Linux_aarch64/23.7/math_libs/12.2/targets/sbsa-linux/lib/libnvblas.so
 #export PGI_TERM=trace #debug trace signal abort 
 
 
 M=20816
 N=2400
 K=32
-ni=3
+ni=10
 
 echo "-------------------------"
 echo Matrix Size: $M $N $K
@@ -37,3 +38,6 @@ echo ""
 echo $M $N $K $ni|LD_PRELOAD=./mylib.so ./a.out   
 echo ""
 echo $M $N $K $ni|LD_PRELOAD=./mylib.so  numactl -m 1 ./a.out  
+
+echo $M $N $K $ni|LD_PRELOAD=$NVBLAS ./a.out  
+echo $M $N $K $ni|LD_PRELOAD=$NVBLAS numactl -m 1 ./a.out  

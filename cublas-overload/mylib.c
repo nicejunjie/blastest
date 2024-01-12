@@ -20,9 +20,16 @@ extern double mysecond();
 static void (*orig_dgemm)()=NULL; 
 cublasStatus_t status;
 cublasHandle_t handle;
+
+#ifdef CUDA_ASYNC
+cudaStream_t stream;
+#endif
+
+#ifdef CUDA_MEM_POOL
 MemoryPool memoryPool, memoryPool0;
 size_t poolSize = (size_t)1*GB; 
 bool poolinit=false;
+#endif
 
 void dgemm_( const char* transa, const char* transb, const int* m, const int* n, const int* k, 
                  const double* alpha, const double* A, const int* lda, const double* B, const int* ldb, 
@@ -44,7 +51,7 @@ void dgemm_( const char* transa, const char* transb, const int* m, const int* n,
 
    double avgn=cbrt(*m)*cbrt(*n)*cbrt(*k);
    printf("msize: %d %d %d  mmem: %d MB\n",*m, *n, *k, ((*m)*(*k)+(*k)*(*n)+(*m)*(*n))/1024/1024*8);
-   if(avgn<500)  {
+   if(avgn<10)  {
          printf("%s\n", "on cpu");
          orig_dgemm(transa, transb, m, n, k, alpha, A, lda, B, ldb, beta, C, ldc); 
          return;
@@ -73,6 +80,10 @@ void dgemm_( const char* transa, const char* transb, const int* m, const int* n,
     d_A = (double*)allocateFromPool(&memoryPool, (*m)*(*k)*sizeof(double));
     d_B = (double*)allocateFromPool(&memoryPool, (*k)*(*n)*sizeof(double));
     d_C = (double*)allocateFromPool(&memoryPool, (*m)*(*n)*sizeof(double));
+#elif defined(CUDA_ASYNC)
+    cudaMallocAsync((void **)&d_A, (*m) * (*k) * sizeof(double),stream);
+    cudaMallocAsync((void **)&d_B, (*k) * (*n) * sizeof(double),stream);
+    cudaMallocAsync((void **)&d_C, (*m) * (*n) * sizeof(double),stream);
 #else 
     cudaMalloc((void **)&d_A, (*m) * (*k) * sizeof(double));
     cudaMalloc((void **)&d_B, (*k) * (*n) * sizeof(double));
@@ -126,6 +137,10 @@ void dgemm_( const char* transa, const char* transb, const int* m, const int* n,
 #endif
 #ifdef CUDA_MEM_POOL
     memoryPool = memoryPool0;
+#elif defined(CUDA_ASYNC)
+    cudaFreeAsync(d_A,stream);
+    cudaFreeAsync(d_B,stream);
+    cudaFreeAsync(d_C,stream);
 #else
     cudaFree(d_A);
     cudaFree(d_B);
@@ -169,12 +184,18 @@ void mylib_init(){
         fprintf(stderr, "CUBLAS initialization failed\n");
         return;
     }
-//    dgemm_0call();
+
+#ifdef CUDA_ASYNC
+       // Create CUDA stream
+    cudaStreamCreate(&stream);
+#endif
     return;
 }
 void mylib_fini(){
-    // Destroy the handle
     cublasDestroy(handle);
+#ifdef CUDA_ASYNC
+    cudaStreamDestroy(stream);
+#endif
 #ifdef CUDA_MEM_POOL
     if(poolinit) destroyMemoryPool(&memoryPool);
 #endif
