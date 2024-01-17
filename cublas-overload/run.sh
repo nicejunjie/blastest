@@ -9,13 +9,16 @@ CUINCLUDE=/home/nvidia/junjieli//nvhpc/23.11/Linux_aarch64/23.11/cuda/include
 #COPY="-DGPUCOPY -DDEBUG -DCUDA_MEM_POOL"
 #COPY="-DGPUCOPY -DCUDA_MEM_POOL"
 #COPY="-DDEBUG -DGPUCOPY -DCUDA_ASYNC "
-COPY=""
+COPY="-DAUTO_NUMA"
 
-FLAGS="--diag_suppress incompatible_assignment_operands --diag_suppress set_but_not_used"
-pgcc -c -g -fPIC mysecond.c -o mysecond.o  $FLAGS
-pgcc $COPY -c -g   -fPIC mylib.c  -o mylib.o  -I$CUINCLUDE -traceback $FLAGS
-#pgcc -c -g -fPIC cuda_mem_pool.c -o cuad_mem_pool.o -I$CUINCLUDE -traceback $FLAGS
-pgcc -shared -g  -o mylib.so mylib.o mysecond.o $CUBLAS $CURT -traceback $FLAGS 
+CC=mpicc 
+
+FLAGS="--diag_suppress incompatible_assignment_operands --diag_suppress set_but_not_used  -lnuma -mp"
+$CC -c -g -fPIC mysecond.c -o mysecond.o  $FLAGS
+$CC $COPY -c -g   -fPIC mylib.c  -o mylib.o  -I$CUINCLUDE -traceback $FLAGS
+#$CC -DINIT_IN_MPI $COPY -c -g   -fPIC mylib.c  -o mylib-mpi.o  -I$CUINCLUDE -traceback $FLAGS
+$CC -shared -g  -o mylib.so mylib.o mysecond.o $CUBLAS $CURT -traceback $FLAGS 
+#$CC -shared -g  -o mylib-mpi.so mylib-mpi.o mysecond.o $CUBLAS $CURT -traceback $FLAGS 
 
 pgfortran -g -mp  -lblas -O2 -Minfo=all test_dgemm.f90 mysecond.o
 
@@ -23,15 +26,15 @@ pgfortran -g -mp  -lblas -O2 -Minfo=all test_dgemm.f90 mysecond.o
 #export PGI_TERM=trace #debug trace signal abort 
 
 
-M=20816
+M=93536
 N=2400
 K=32
-ni=10
+ni=3
 
 echo "-------------------------"
 echo Matrix Size: $M $N $K
 echo "-------------------------"
-export OMP_NUM_THREADS=72
+export OMP_NUM_THREADS=4
 echo ""
 echo $M $N $K $ni| ./a.out 
 echo ""
@@ -39,5 +42,5 @@ echo $M $N $K $ni|LD_PRELOAD=./mylib.so ./a.out
 echo ""
 echo $M $N $K $ni|LD_PRELOAD=./mylib.so  numactl -m 1 ./a.out  
 
-echo $M $N $K $ni|LD_PRELOAD=$NVBLAS ./a.out  
-echo $M $N $K $ni|LD_PRELOAD=$NVBLAS numactl -m 1 ./a.out  
+#echo $M $N $K $ni|LD_PRELOAD=$NVBLAS ./a.out  
+#echo $M $N $K $ni|LD_PRELOAD=$NVBLAS numactl -m 1 ./a.out  
