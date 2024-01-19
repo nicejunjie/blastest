@@ -1,17 +1,17 @@
  
 
-
-CUBLAS=/home/nvidia/junjieli//nvhpc/23.11/Linux_aarch64/23.11/math_libs/lib64/libcublas.so
-CURT=/home/nvidia/junjieli//nvhpc/23.11/Linux_aarch64/23.11/cuda/lib64/libcudart.so
-CUINCLUDE=/home/nvidia/junjieli//nvhpc/23.7/src/nvhpc_2023_237_Linux_aarch64_cuda_multi/install_components/Linux_aarch64/23.7/cuda/12.2/include/
-CUINCLUDE=/home/nvidia/junjieli//nvhpc/23.11/Linux_aarch64/23.11/cuda/include
+NVHOME=/scratch/07893/junjieli/soft/nvhpc/23.11/Linux_x86_64/23.11
+#NVHOME=/home/nvidia/junjieli//nvhpc/23.11/Linux_aarch64/23.11
+CUBLAS=$NVHOME/math_libs/lib64/libcublas.so
+CURT=$NVHOME/cuda/lib64/libcudart.so
+CUINCLUDE=$NVHOME/cuda/include
 
 #COPY="-DGPUCOPY -DDEBUG -DCUDA_MEM_POOL"
 #COPY="-DGPUCOPY -DCUDA_MEM_POOL"
 #COPY="-DDEBUG -DGPUCOPY -DCUDA_ASYNC "
 COPY="-DAUTO_NUMA"
 
-CC=mpicc 
+CC=pgcc
 
 FLAGS="--diag_suppress incompatible_assignment_operands --diag_suppress set_but_not_used  -lnuma -mp"
 $CC -c -g -fPIC mysecond.c -o mysecond.o  $FLAGS
