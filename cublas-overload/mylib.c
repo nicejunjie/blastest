@@ -40,24 +40,28 @@ int which_numa(double *var) {
  return status[0];
 }
 void move_numa2(double *ptr, size_t size, int target_node) {
- int status[1];
- status[0]=-1;
- int PAGE_SIZE=getpagesize();
- size_t num_pages = (size * sizeof(double) + PAGE_SIZE - 1) / PAGE_SIZE;
+  double tnuma=mysecond();
+  int status[1];
+  status[0]=-1;
+  int PAGE_SIZE=getpagesize();
+  size_t num_pages = (size + PAGE_SIZE - 1) / PAGE_SIZE;
 #pragma omp parallel for
- for (size_t i = 0; i < num_pages; i++) {
+  for (size_t i = 0; i < num_pages; i++) {
      void *page_addr = ptr + (i * PAGE_SIZE / sizeof(double));
      move_pages(0 /*self memory */, 1, &page_addr, &target_node, status, 0);
   }
- return ;
+  tnuma=mysecond()-tnuma;
+  printf("move_numa time %15.6f of %d pages\n", tnuma, num_pages);
+  return ;
 }
 void move_numa(double *ptr, size_t size, int target_node) {
-    int status[1];
+// size in Bytes
+    //printf("size in move_numa=%d, array size=%d\n",size, size/8);
     double tnuma=mysecond();
-    status[0] = -1;
     int PAGE_SIZE = getpagesize();
-    size_t num_pages = (size * sizeof(double) + PAGE_SIZE - 1) / PAGE_SIZE;
-    printf("number of pages to move %d\n", num_pages);
+    unsigned long num_pages = (size + PAGE_SIZE - 1) / PAGE_SIZE;
+    int *status = malloc(num_pages*sizeof(int));
+    int *nodes = malloc(num_pages*sizeof(int));
     // Allocate an array to store page addresses
     void **page_addrs = malloc(num_pages * sizeof(void *));
     if (page_addrs == NULL) {
@@ -68,21 +72,28 @@ void move_numa(double *ptr, size_t size, int target_node) {
     // Populate the array with page addresses
     for (size_t i = 0; i < num_pages; i++) {
         page_addrs[i] = ptr + (i * PAGE_SIZE / sizeof(double));
+        nodes[i]=target_node;
+        status[i]=-1;
     }
 
     // Call move_pages once with the array of page addresses
-    move_pages(0 /*self memory*/, num_pages, page_addrs, &target_node, status, 0);
+    move_pages(0 /*self memory*/, num_pages, page_addrs, nodes, status, 0);
+    //printf("status code\n");
+    //for (int i =0; i<num_pages; i++) printf("%d:%d\n",i,status[i]);
 
     // Free the allocated array
     free(page_addrs);
 
     tnuma=mysecond()-tnuma;
+    //printf("element numa\n");
+    //for (int i =0; i<size/8; i++) printf("%d %d\n",i,which_numa(ptr+i));
     printf("move_numa time %15.6f of %d pages\n", tnuma, num_pages);
     return;
 }
 
 
 static void (*orig_dgemm)()=NULL; 
+static void (*orig_dgemv)()=NULL; 
 cublasStatus_t status;
 cublasHandle_t handle;
 
@@ -115,13 +126,13 @@ void dgemm_( const char* transa, const char* transb, const int* m, const int* n,
 #endif
 
    double avgn=cbrt(*m)*cbrt(*n)*cbrt(*k);
-   printf("msize: %d %d %d  mmem: %d MB\n",*m, *n, *k, ((*m)*(*k)+(*k)*(*n)+(*m)*(*n))/1024/1024*8);
+   printf("dgemm msize: %d %d %d  mmem: %d MB\n",*m, *n, *k, ((*m)*(*k)+(*k)*(*n)+(*m)*(*n))/1024/1024*8);
    if(avgn<500)  {
-         printf("%s\n", "on cpu");
+         printf("%s\n", "dgemm on cpu");
          orig_dgemm(transa, transb, m, n, k, alpha, A, lda, B, ldb, beta, C, ldc); 
          return;
    }
-   printf("%s %.1f\n", "on gpu", avgn);
+   printf("%s %.1f\n", "dgemm on gpu", avgn);
 
 //   fprintf(stdout,"overloading dgemm_\n");
 
@@ -226,9 +237,9 @@ void dgemm_( const char* transa, const char* transb, const int* m, const int* n,
     int inumaB=which_numa(B);
     int inumaC=which_numa(C);
     //printf("numa node of A=%d B=%d C=%d\n", inumaA, inumaB, inumaC);    
-    if ( inumaA == 0 ) move_numa2(A,(*m)*(*k)*sizeof(double),NUMA_HBM);
-    if ( inumaB == 0 ) move_numa2(B,(*k)*(*n)*sizeof(double),NUMA_HBM);
-    if ( inumaC == 0 ) move_numa2(C,(*m)*(*n)*sizeof(double),NUMA_HBM);
+    if ( inumaA == 0 ) move_numa(A,(*m)*(*k)*sizeof(double),NUMA_HBM);
+    if ( inumaB == 0 ) move_numa(B,(*k)*(*n)*sizeof(double),NUMA_HBM);
+    if ( inumaC == 0 ) move_numa(C,(*m)*(*n)*sizeof(double),NUMA_HBM);
 #endif
 
     status = cublasDgemm(handle, transA, transB, *m, *n, *k, alpha, A, *lda, B, *ldb, beta, C, *ldc);
@@ -252,9 +263,48 @@ void dgemm_( const char* transa, const char* transb, const int* m, const int* n,
 }
 
 
+void dgemv_slow(const char *trans, const int *m, const int *n, const double *alpha, 
+    const double *a, const int *lda, const double *x, const int *incx, 
+    const double *beta, double *y, const int *incy)
+{
 
+   double avgn=sqrt(*m)*sqrt(*n);
+   printf("dgemv msize: %d %d \n",*m, *n);
+   if(avgn<500)  {
+         printf("%s\n", "dgemv on cpu");
+         orig_dgemv(trans, m, n, alpha, a, lda, x, incx, beta, y, incy); 
+         return;
+   }
+   printf("%s %.1f\n", "dgemv on gpu", avgn);
+
+
+    cublasOperation_t transGPU;
+    int size_a, size_x, size_y;
+    size_a=(*m)*(*n);
+    if (*trans == 'N') {
+        transGPU = CUBLAS_OP_N;
+        size_x=( 1 + ( (*n) - 1 )*abs( incx ) );
+        size_y=( 1 + ( (*m) - 1 )*abs( incy ) );
+    }
+    else { 
+        transGPU = CUBLAS_OP_T;
+        size_x=( 1 + ( (*m) - 1 )*abs( incx ) );
+        size_y=( 1 + ( (*n) - 1 )*abs( incy ) );
+    }
+    int inumaa=which_numa(a);
+    int inumax=which_numa(x);
+    int inumay=which_numa(y);
+    if ( inumaa == 0 ) move_numa2(a,size_a*sizeof(double),NUMA_HBM);
+    if ( inumax == 0 ) move_numa2(x,size_x*sizeof(double),NUMA_HBM);
+    if ( inumay == 0 ) move_numa2(y,size_y*sizeof(double),NUMA_HBM);
+    status = cublasDgemv(handle, transGPU, *m, *n, alpha, a, *lda, x, *incx, beta, y, *incy);
+    cudaDeviceSynchronize();
+
+    return;
+}
 void mylib_init(){
     orig_dgemm= dlsym(RTLD_NEXT, "dgemm_");
+    //orig_dgemv= dlsym(RTLD_NEXT, "dgemv_slow");
     status = cublasCreate(&handle);
     if (status != CUBLAS_STATUS_SUCCESS) {
         fprintf(stderr, "CUBLAS initialization failed\n");

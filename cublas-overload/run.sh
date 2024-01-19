@@ -9,11 +9,14 @@ CUINCLUDE=/home/nvidia/junjieli//nvhpc/23.11/Linux_aarch64/23.11/cuda/include
 #COPY="-DGPUCOPY -DDEBUG -DCUDA_MEM_POOL"
 #COPY="-DGPUCOPY -DCUDA_MEM_POOL"
 #COPY="-DDEBUG -DGPUCOPY -DCUDA_ASYNC "
-COPY="-DAUTO_NUMA"
+#COPY="-DDEBUG -DGPUCOPY"
+COPY="-DAUTO_NUMA "
 
 CC=mpicc 
 
-FLAGS="--diag_suppress incompatible_assignment_operands --diag_suppress set_but_not_used  -lnuma -mp"
+CFLAGS=" -O2 -lnuma -mp"
+EXTRA_FLAGS="--diag_suppress incompatible_assignment_operands --diag_suppress set_but_not_used --diag_suppress incompatible_param"
+FLAGS="$CFLAGS $EXTRA_FLAGS"
 $CC -c -g -fPIC mysecond.c -o mysecond.o  $FLAGS
 $CC $COPY -c -g   -fPIC mylib.c  -o mylib.o  -I$CUINCLUDE -traceback $FLAGS
 #$CC -DINIT_IN_MPI $COPY -c -g   -fPIC mylib.c  -o mylib-mpi.o  -I$CUINCLUDE -traceback $FLAGS
@@ -26,8 +29,11 @@ pgfortran -g -mp  -lblas -O2 -Minfo=all test_dgemm.f90 mysecond.o
 #export PGI_TERM=trace #debug trace signal abort 
 
 
-M=93536
+#M=93536
+M=20816
 N=2400
+#M=500
+#N=500
 K=32
 ni=3
 
