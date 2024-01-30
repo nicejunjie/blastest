@@ -39,14 +39,14 @@ int which_numa(double *var) {
  // if(debug) printf("Memory at %p is at numa node %d (retcode %d)\n", ptr_to_check, status[0], ret_code);
  return status[0];
 }
-void move_numa2(double *ptr, unsigned long size, int target_node) {
+void move_numa2(double *ptr, size_t size, int target_node) {
   double tnuma=mysecond();
   int status[1];
   status[0]=-1;
   int PAGE_SIZE=getpagesize();
-  unsigned long num_pages = (size + PAGE_SIZE - 1) / PAGE_SIZE;
+  size_t num_pages = (size + PAGE_SIZE - 1) / PAGE_SIZE;
 #pragma omp parallel for
-  for (unsigned long i = 0; i < num_pages; i++) {
+  for (size_t i = 0; i < num_pages; i++) {
      void *page_addr = ptr + (i * PAGE_SIZE / sizeof(double));
      move_pages(0 /*self memory */, 1, &page_addr, &target_node, status, 0);
   }
@@ -60,6 +60,7 @@ void move_numa(double *ptr, unsigned long size, int target_node) {
     double tnuma=mysecond();
     int PAGE_SIZE = getpagesize();
     unsigned long num_pages = (size + PAGE_SIZE - 1) / PAGE_SIZE;
+    printf("debug size=%lu PAGE_SIZE=%d num_pages=%lu\n", size, PAGE_SIZE, num_pages);
     int *status = malloc(num_pages*sizeof(int));
     int *nodes = malloc(num_pages*sizeof(int));
     // Allocate an array to store page addresses
@@ -93,8 +94,8 @@ void move_numa(double *ptr, unsigned long size, int target_node) {
 
 
 static void (*orig_dgemm)()=NULL; 
-//static void (*orig_pdgemm)()=NULL; 
-//static void (*orig_dgemv)()=NULL; 
+static void (*orig_pdgemm)()=NULL; 
+static void (*orig_dgemv)()=NULL; 
 cublasStatus_t status;
 cublasHandle_t handle;
 
@@ -130,9 +131,9 @@ void dgemm_( const char* transa, const char* transb, const int* m, const int* n,
    unsigned long dgemm_mem_size_bytes = ((unsigned long)(*m) * (*k) + (unsigned long)(*k) * (*n) + (unsigned long)(*m) * (*n)) * sizeof(double);
    unsigned long dgemm_mem_size_mb = dgemm_mem_size_bytes / (1024 * 1024);
 
-   printf("dgemm msize: %d %d %d, mmem: %lu MiB\n",*m, *n, *k, dgemm_mem_size_mb);
+   printf("dgemm msize: %d %d %d  mmem: %lu MiB\n",*m, *n, *k, dgemm_mem_size_mb);
    if(avgn<500)  {
-         printf("%s %.1f\n", "dgemm on cpu", avgn);
+         printf("%s\n", "dgemm on cpu");
          orig_dgemm(transa, transb, m, n, k, alpha, A, lda, B, ldb, beta, C, ldc); 
          return;
    }
@@ -141,11 +142,8 @@ void dgemm_( const char* transa, const char* transb, const int* m, const int* n,
 //   fprintf(stdout,"overloading dgemm_\n");
 
     // Perform matrix multiplication
-    //cublasOperation_t transA = (*transa == 'N' || *transa == 'n') ? CUBLAS_OP_N : CUBLAS_OP_T;
-    //cublasOperation_t transB = (*transb == 'N' || *transb == 'n') ? CUBLAS_OP_N : CUBLAS_OP_T;
-    cublasOperation_t transA = (transa[0] == 'N' || transa[0] == 'n') ? CUBLAS_OP_N : CUBLAS_OP_T;
-    cublasOperation_t transB = (transb[0] == 'N' || transb[0] == 'n') ? CUBLAS_OP_N : CUBLAS_OP_T;
-
+   cublasOperation_t transA = (*transa == 'N') ? CUBLAS_OP_N : CUBLAS_OP_T;
+   cublasOperation_t transB = (*transb == 'N') ? CUBLAS_OP_N : CUBLAS_OP_T;
 
 #ifdef DEBUG
     t1=mysecond()-t0;
@@ -269,10 +267,87 @@ void dgemm_( const char* transa, const char* transb, const int* m, const int* n,
     return;
 }
 
+void pdgemm_( const char *transa, const char *transb, const int *m, const int *n, const int *k, const double *alpha, const double *A, const int *ia, const int *ja, const int *desca, const double *B, const int *ib, const int *jb, const int *descb, const double *beta, double *C, const int *ic, const int *jc, const int *descc )
+{
+   double avgn=cbrt(*m)*cbrt(*n)*cbrt(*k);
+   unsigned long pdgemm_mem_size_bytes = ((unsigned long)(*m) * (*k) + (unsigned long)(*k) * (*n) + (unsigned long)(*m) * (*n)) * sizeof(double);
+   unsigned long pdgemm_mem_size_mb = pdgemm_mem_size_bytes / (1024 * 1024);
+   printf("pdgemm msize: %d %d %d  mmem: %lu MiB\n",*m, *n, *k, pdgemm_mem_size_mb);
+   if(avgn<500)  {
+         printf("%s\n", "pdgemm on cpu");
+         orig_pdgemm(transa, transb, m, n, k, alpha, A, ia, ja, desca, B, ib, jb, descb, beta, C, ic, jc, descc );
+         return;
+   }
+    
+#ifdef AUTO_NUMA
+   int inumaA=which_numa(A);
+   int inumaB=which_numa(B);
+   int inumaC=which_numa(C);
+   //printf("numa node of A=%d B=%d C=%d\n", inumaA, inumaB, inumaC);    
+   if ( inumaA == 0 ) { 
+      unsigned long  sizeA=(unsigned long)(*m)*(*k)*sizeof(double);
+      move_numa(A, sizeA, NUMA_HBM);
+   }
+   if ( inumaB == 0 ) {
+      unsigned long sizeB=(unsigned long)(*k)*(*n)*sizeof(double);
+      move_numa(B, sizeB, NUMA_HBM);
+   }
+   if ( inumaC == 0 ) {
+      unsigned long sizeC=(unsigned long)(*m)*(*n)*sizeof(double);
+      move_numa(C, sizeC, NUMA_HBM);
+   }
+#endif
+   orig_pdgemm(transa, transb, m, n, k, alpha, A, ia, ja, desca, B, ib, jb, descb, beta, C, ic, jc, descc );
 
+   return;
+}
+
+
+
+void dgemv_slow(const char *trans, const int *m, const int *n, const double *alpha, 
+    const double *a, const int *lda, const double *x, const int *incx, 
+    const double *beta, double *y, const int *incy)
+{
+
+   double avgn=sqrt(*m)*sqrt(*n);
+   printf("dgemv msize: %d %d \n",*m, *n);
+   if(avgn<500)  {
+         printf("%s\n", "dgemv on cpu");
+         orig_dgemv(trans, m, n, alpha, a, lda, x, incx, beta, y, incy); 
+         return;
+   }
+   printf("%s %.1f\n", "dgemv on gpu", avgn);
+
+
+    cublasOperation_t transGPU;
+    int size_a, size_x, size_y;
+    size_a=(*m)*(*n);
+    if (*trans == 'N') {
+        transGPU = CUBLAS_OP_N;
+        size_x=( 1 + ( (*n) - 1 )*abs( incx ) );
+        size_y=( 1 + ( (*m) - 1 )*abs( incy ) );
+    }
+    else { 
+        transGPU = CUBLAS_OP_T;
+        size_x=( 1 + ( (*m) - 1 )*abs( incx ) );
+        size_y=( 1 + ( (*n) - 1 )*abs( incy ) );
+    }
+/*
+    int inumaa=which_numa(a);
+    int inumax=which_numa(x);
+    int inumay=which_numa(y);
+    if ( inumaa == 0 ) move_numa2(a,size_a*sizeof(double),NUMA_HBM);
+    if ( inumax == 0 ) move_numa2(x,size_x*sizeof(double),NUMA_HBM);
+    if ( inumay == 0 ) move_numa2(y,size_y*sizeof(double),NUMA_HBM);
+*/
+    status = cublasDgemv(handle, transGPU, *m, *n, alpha, a, *lda, x, *incx, beta, y, *incy);
+    cudaDeviceSynchronize();
+
+    return;
+}
 void mylib_init(){
     orig_dgemm= dlsym(RTLD_NEXT, "dgemm_");
-    //orig_pdgemm= dlsym(RTLD_NEXT, "pdgemm_");
+    orig_pdgemm= dlsym(RTLD_NEXT, "pdgemm_");
     //orig_dgemv= dlsym(RTLD_NEXT, "dgemv_");
     status = cublasCreate(&handle);
     if (status != CUBLAS_STATUS_SUCCESS) {

@@ -1,7 +1,7 @@
  
 
-NVHOME=/scratch/07893/junjieli/soft/nvhpc/23.11/Linux_x86_64/23.11
-#NVHOME=/home/nvidia/junjieli//nvhpc/23.11/Linux_aarch64/23.11
+#NVHOME=/scratch/07893/junjieli/soft/nvhpc/23.11/Linux_x86_64/23.11
+NVHOME=/home/nvidia/junjieli//nvhpc/23.11/Linux_aarch64/23.11
 CUBLAS=$NVHOME/math_libs/lib64/libcublas.so
 CURT=$NVHOME/cuda/lib64/libcudart.so
 CUINCLUDE=$NVHOME/cuda/include
@@ -19,9 +19,7 @@ EXTRA_FLAGS="--diag_suppress incompatible_assignment_operands --diag_suppress se
 FLAGS="$CFLAGS $EXTRA_FLAGS"
 $CC -c -g -fPIC mysecond.c -o mysecond.o  $FLAGS
 $CC $COPY -c -g   -fPIC mylib.c  -o mylib.o  -I$CUINCLUDE -traceback $FLAGS
-#$CC -DINIT_IN_MPI $COPY -c -g   -fPIC mylib.c  -o mylib-mpi.o  -I$CUINCLUDE -traceback $FLAGS
 $CC -shared -g  -o mylib.so mylib.o mysecond.o $CUBLAS $CURT -traceback $FLAGS 
-#$CC -shared -g  -o mylib-mpi.so mylib-mpi.o mysecond.o $CUBLAS $CURT -traceback $FLAGS 
 
 pgfortran -g -mp  -lblas -O2 -Minfo=all test_dgemm.f90 mysecond.o
 
@@ -30,11 +28,14 @@ pgfortran -g -mp  -lblas -O2 -Minfo=all test_dgemm.f90 mysecond.o
 
 
 #M=93536
-M=20816
+M=374128
 N=2400
-#M=500
+M=500
 #N=500
 K=32
+#M=4800 
+#N=4800 
+#K=748288
 ni=3
 
 echo "-------------------------"
