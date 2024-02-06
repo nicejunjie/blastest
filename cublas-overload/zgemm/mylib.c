@@ -158,6 +158,9 @@ void zgemm_( const char* transa, const char* transb, const int* m, const int* n,
     cudaMemcpy(d_A, A, (*m) * (*k) * sizeof(cuDoubleComplex), cudaMemcpyHostToDevice);
     cudaMemcpy(d_B, B, (*k) * (*n) * sizeof(cuDoubleComplex), cudaMemcpyHostToDevice);
     cuDoubleComplex *beta2=beta;
+// to test
+//  double beta_abs = cuCabs(*beta);
+//  if( beta_abs < 1.0e-8 ) 
     if(cuCreal(*beta2)!=0.0 || cuCimag(*beta2)!=0.0) 
                cudaMemcpy(d_C, C, (*m) * (*n) * sizeof(cuDoubleComplex), cudaMemcpyHostToDevice);
 

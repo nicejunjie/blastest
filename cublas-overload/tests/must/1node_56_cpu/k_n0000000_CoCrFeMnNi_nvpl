@@ -1,0 +1,24 @@
+***************************************************************************************
+*  Note:                                                                              *
+*     In the MuST version 1.8.2 and prior, the total energy value includes the zero-  *
+*     point lattice energy. Starting from version v1.8.3, the zero point lattice      *
+*     energy is removed from the total energy value and is explicitly printed out in  *
+*     one of the following lines. If needed, one will have to add the zero-point      *
+*     lattice energy to the total energy by hand.                                     *
+***************************************************************************************
+Source Code Version                  : v1.8.9                                            
+System Description                   : CoCrFeMnNi, fcc structure                         
+Number of Atoms in Unit Cell         : 56                                                
+Number of Atomic Species             : 5                                                 
+Number of Atoms in Each Type         : 11(Cr), 11(Mn), 11(Fe), 11(Co), 12(Ni)            
+Unit Cell Volume (au^3)              : 0.44214974D+04                                    
+Average Atomic Volume (au^3)         : 78.95531                                          
+Zero Point Lattice Energy/Atom (Ryd) : 0.00336                                           
+Zero Point Lattice PV3/Atom (Ryd)    : 0.01736                                           
+Energy Offset                        : -2537                                             
+=======================================================================================
+    Iter    Energy      3PV     Efermi   Rms_rho    Rms_pot   Mix Alg   Alpha    Mom  
+---------------------------------------------------------------------------------------
+**     1  -0.573582 -39.28429  0.91001  0.593E-01  0.299E+01  pot  B   0.05000  0.9914
+       2  29.164849 -17.98399  1.37154  0.495E-01  0.932E+01  pot  B   0.05000  0.8475
+       3   8.173409 -45.23365  2.42023  0.481E-01  0.293E+01  pot  B   0.05000  0.1361
