@@ -5,7 +5,6 @@ PROGRAM blas_test
   INTEGER :: M, N, K
   REAL*8, ALLOCATABLE :: A(:,:), B(:,:), C(:,:)
   INTEGER :: i, Niter, j
-  REAL*8 :: dtime, mysecond
   REAL*8 :: check
   REAL*8 :: alpha, beta
   
@@ -30,13 +29,8 @@ PROGRAM blas_test
  beta=1.0d0
   
   do i=1, Niter
-  dtime = mysecond()
-!    print *, "iter=",i
     CALL DGEMM('N', 'N', M, N, K, alpha, A, M, B, K, beta, C, M)
-  dtime = mysecond() - dtime
-  write(*,'(A10 F20.6)') "runtime(s):", dtime
   end do
-!  dtime = dtime / Niter
 
 !$omp parallel do reduction(+:check) private(j)
   do i=1, M
