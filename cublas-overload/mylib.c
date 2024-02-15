@@ -10,6 +10,9 @@
 #include <dlfcn.h>
 #include <stdbool.h>
 
+// disable THP
+#include <sys/prctl.h> 
+
 #ifdef INIT_IN_MPI
 #include <mpi.h>
 #endif
@@ -271,9 +274,17 @@ void dgemm_( const char* transa, const char* transb, const int* m, const int* n,
 
 
 void mylib_init(){
+
+// disable THP for auto-page migration
+#ifdef AUTO_NUMA
+    prctl(PR_SET_THP_DISABLE, 1, 0, 0, 0);
+#endif
+
+// register functions
     orig_dgemm= dlsym(RTLD_NEXT, "dgemm_");
     //orig_pdgemm= dlsym(RTLD_NEXT, "pdgemm_");
     //orig_dgemv= dlsym(RTLD_NEXT, "dgemv_");
+
     status = cublasCreate(&handle);
     if (status != CUBLAS_STATUS_SUCCESS) {
         fprintf(stderr, "CUBLAS initialization failed\n");
